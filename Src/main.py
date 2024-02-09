@@ -1,3 +1,5 @@
+import copy
+
 from SimEngine import *
 import Sellers
 from Bidders import *
@@ -5,6 +7,26 @@ from ReferenceCalculator import *
 import random
 import math
 import yaml
+import pymongo
+from pymongo import MongoClient
+
+uri = "mongodb+srv://admin-test:test@cluster0.rpqlu.mongodb.net/?retryWrites=true&w=majority"
+
+client = MongoClient(uri)
+db = client["DSM_Sim"]
+col_bidders = db["bidders"]
+col_sellers = db["sellers"]
+col_blocks = db["blocks"]
+x_bidders = col_bidders.delete_many({})
+x_sellers = col_sellers.delete_many({})
+x_blocks = col_blocks.delete_many({})
+
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
 
 seed = None
 
@@ -59,7 +81,7 @@ def readConfig(skipPrompts):
     elif not bidders and not sellers:
         demand = random.randrange(500, 5000)
         supply = round(demand / conf["resource-usage"])
-        bidders = genBidders(conf["bidders"], demand, conf["radius"], conf["distance-limit"], conf["distance-penalty"])
+        bidders= genBidders(conf["bidders"], demand, conf["radius"], conf["distance-limit"], conf["distance-penalty"])
         sellers = genSellers(conf["sellers"], supply, conf["radius"], conf)
     elif bidders and not sellers:
         supply = round(demand / conf["resource-usage"])
@@ -67,6 +89,13 @@ def readConfig(skipPrompts):
     else:
         demand = round(conf["resource-usage"] * supply)
         bidders = genBidders(conf["bidders"], demand, conf["radius"], conf["distance-limit"], conf["distance-penalty"])
+
+
+    #bidders_list = list(bidders)
+    #x_bidders = col_bidders.insert_many(bidders_list)
+    #print(bidders_list)
+    print(bidders)
+    print(sellers)
     
     if conf["distance-limit"] != None:
         overrideLimit(bidders, conf["distance-limit"])
@@ -126,21 +155,45 @@ def genSellers(number, supply, radius, conf):
         chainLen = random.randint(conf['min-block'], conf['max-block'])
         div = sorted(random.sample(range(1, toDistribute), chainLen))
         values = [a - b for a, b in zip(div + [toDistribute], [0] + div)]
-        blocks = {}
-        for j in range(len(values)):
-            discount = 0
-            if j != 0:
-                discount = round(random.uniform(0.1, 0.50), 2)
-            blocks["block" + str(j)] = [
-                {"quantity": values.pop()},
-                {"price": random.randrange(500, 5000)},
-                {"discount": discount},
-            ]
         sellers["Seller" + str(i)] = {
             "location": genLocation(radius),
-            "blocks": blocks,
+            "blocks": genBlocks(values, 0),
         }
+        sellers_list = copy.deepcopy(sellers[f"Seller{i}"])
+        x_sellers = col_sellers.insert_one(sellers_list)
+        blocks_list = genBlocks(values, col_sellers.find(({}).get("_id")))
+        print(f"block_list:{blocks_list}")
+        #x_result = col_blocks.insert_one(blocks_list)
+        #myquery = {"seller_id": x_sellers.inserted_id}
+        #new_value = {"$set": {"blocks": getBlocks(values, x_sellers.inserted_id)}}
+        #x_sellers = col_sellers.update_one(myquery, new_value)
+
     return sellers
+
+
+def genBlocks(values, seller_id):
+    blocks = {}
+    for j in range(len(values)):
+        discount = 0
+        quantity_pop = values.pop()
+        if j != 0:
+            discount = round(random.uniform(0.1, 0.50), 2)
+        # si se cambia de lista a objecto es decir de [] a {} mejora la data en mongodb
+        #blocks["block" + str(j)] = {
+        #    "quantity": quantity_pop,
+        #    "price": random.randrange(1, 3) * quantity_pop,
+        #    "discount": discount,
+        #    "seller_id": seller_id,
+        #}
+        blocks["block" + str(j)] = [
+            {"quantity": quantity_pop},
+            {"price": random.randrange(1, 3) * quantity_pop},
+            {"discount": discount},
+            {"seller_id": seller_id},
+        ]
+        # blocks_list = copy.deepcopy(blocks[f"block{j}"])
+        # x_blocks = col_blocks.insert_one(blocks_list)
+    return blocks
 
 
 def genBidders(number, demand, radius, limit, penalty):
@@ -153,8 +206,10 @@ def genBidders(number, demand, radius, limit, penalty):
             "need": demands.pop(),
             "behavior": Behaviour.randomBehaviour(),
             "distanceLimit": limit,
-            "distancePenalty":penalty
+            "distancePenalty": penalty
         }
+        bidders_list = copy.deepcopy(bidders[f"Bidder{i}"])
+        x_bidders = col_bidders.insert_one(bidders_list)
     return bidders
 
 
@@ -215,7 +270,7 @@ def genLocation(radius):
     theta = random.random() * 2 * math.pi
     x = round(r * math.cos(theta), 4)
     y = round(r * math.sin(theta), 4)
-    return [x,y]
+    return [x, y]
 
 def overrideLimit(bidders, limit):
     for bidder in bidders.items():

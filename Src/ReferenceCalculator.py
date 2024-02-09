@@ -12,8 +12,11 @@ def matchMakingCalculation(sellerList, bidderList):
     print(f"Beginning matchmaking calculation\n {int((len(blocks) / 2) + 1) * math.comb(len(blocks), len(bidderList))* len(blocks)} combinations to test")
 
     for perm in permutations(blocks):
+        print(f"perm: {perm}")
         for rot in listRotator(perm):
+            print(f"rot: {rot}")
             for combination in splitfinder(rot, len(bidderList)):
+                print(f"combination: {combination}")
                 if(validateCombination(combination, bidderList)):
                     validCombinations.append(formatCombination(combination, bidderList))
                 permComb +=1
@@ -120,10 +123,10 @@ def splitfinder(blocklist, numBuyers):
     for breakpoints in combinations(range(1, len(blocklist) + 1), numBuyers):  # Combinatorics: find all places to place splitpoints between groups
         possibilityN = []
 
-        possibilityN.append(list(blocklist[0 : breakpoints[0]]))
+        possibilityN.append(list(blocklist[0: breakpoints[0]]))
         for i in range(0, numBuyers - 1):
             possibilityN.append(list(blocklist[breakpoints[i] : breakpoints[i + 1]]))
-        possibilityN.append(list(blocklist[breakpoints[(len(breakpoints) - 1)] : (len(blocklist))]))
+        possibilityN.append(list(blocklist[breakpoints[(len(breakpoints) - 1)]: (len(blocklist))]))
 
         possibleSplits.append(list(possibilityN))
     return possibleSplits

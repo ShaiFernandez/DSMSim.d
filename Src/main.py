@@ -81,7 +81,7 @@ def readConfig(skipPrompts):
     elif not bidders and not sellers:
         demand = random.randrange(500, 5000)
         supply = round(demand / conf["resource-usage"])
-        bidders= genBidders(conf["bidders"], demand, conf["radius"], conf["distance-limit"], conf["distance-penalty"])
+        bidders = genBidders(conf["bidders"], demand, conf["radius"], conf["distance-limit"], conf["distance-penalty"])
         sellers = genSellers(conf["sellers"], supply, conf["radius"], conf)
     elif bidders and not sellers:
         supply = round(demand / conf["resource-usage"])
@@ -90,12 +90,12 @@ def readConfig(skipPrompts):
         demand = round(conf["resource-usage"] * supply)
         bidders = genBidders(conf["bidders"], demand, conf["radius"], conf["distance-limit"], conf["distance-penalty"])
 
-
-    #bidders_list = list(bidders)
-    #x_bidders = col_bidders.insert_many(bidders_list)
-    #print(bidders_list)
-    print(bidders)
-    print(sellers)
+    all_blocks = retrieve_all_blocks()
+    combination = find_combinations(all_blocks, 5000)
+    print(f"bidders = {bidders}")
+    print(f"Sellers = {sellers}")
+    print(f"blocks = {all_blocks}")
+    print(f"combinations = {combination}")
     
     if conf["distance-limit"] != None:
         overrideLimit(bidders, conf["distance-limit"])
@@ -155,19 +155,19 @@ def genSellers(number, supply, radius, conf):
         chainLen = random.randint(conf['min-block'], conf['max-block'])
         div = sorted(random.sample(range(1, toDistribute), chainLen))
         values = [a - b for a, b in zip(div + [toDistribute], [0] + div)]
-        sellers["Seller" + str(i)] = {
+        # Insert placeholder seller to get the seller_id
+        seller_placeholder = {
             "location": genLocation(radius),
-            "blocks": genBlocks(values, 0),
         }
-        sellers_list = copy.deepcopy(sellers[f"Seller{i}"])
-        x_sellers = col_sellers.insert_one(sellers_list)
-        blocks_list = genBlocks(values, col_sellers.find(({}).get("_id")))
-        print(f"block_list:{blocks_list}")
-        #x_result = col_blocks.insert_one(blocks_list)
-        #myquery = {"seller_id": x_sellers.inserted_id}
-        #new_value = {"$set": {"blocks": getBlocks(values, x_sellers.inserted_id)}}
-        #x_sellers = col_sellers.update_one(myquery, new_value)
-
+        inserted_id = col_sellers.insert_one(seller_placeholder).inserted_id
+        # Generate blocks with the actual seller_id
+        blocks = genBlocks(values, inserted_id)
+        # Update the seller document with the generated blocks
+        col_sellers.update_one({"_id": inserted_id}, {"$set": {"blocks": blocks}})
+        sellers[f"Seller{i}"] = {
+            "location": seller_placeholder["location"],
+            "blocks": blocks,
+        }
     return sellers
 
 
@@ -175,24 +175,18 @@ def genBlocks(values, seller_id):
     blocks = {}
     for j in range(len(values)):
         discount = 0
-        quantity_pop = values.pop()
+        quantity = values[j]
         if j != 0:
             discount = round(random.uniform(0.1, 0.50), 2)
         # si se cambia de lista a objecto es decir de [] a {} mejora la data en mongodb
-        #blocks["block" + str(j)] = {
-        #    "quantity": quantity_pop,
-        #    "price": random.randrange(1, 3) * quantity_pop,
-        #    "discount": discount,
-        #    "seller_id": seller_id,
-        #}
-        blocks["block" + str(j)] = [
-            {"quantity": quantity_pop},
-            {"price": random.randrange(1, 3) * quantity_pop},
-            {"discount": discount},
-            {"seller_id": seller_id},
-        ]
-        # blocks_list = copy.deepcopy(blocks[f"block{j}"])
-        # x_blocks = col_blocks.insert_one(blocks_list)
+        block_data = {
+            "quantity": quantity,
+            "price": random.randrange(1, 3) * quantity,
+            "discount": discount,
+            "seller_id": seller_id,
+        }
+        block_id = col_blocks.insert_one(block_data)
+        blocks["block" + str(j)] = block_data
     return blocks
 
 
@@ -213,6 +207,16 @@ def genBidders(number, demand, radius, limit, penalty):
     return bidders
 
 
+def retrieve_all_blocks():
+    all_blocks = []
+    sellers = col_sellers.find({})
+    for seller in sellers:
+        if "blocks" in seller:
+            for block_id, block in seller["blocks"].items():
+                all_blocks.append(block)
+                all_blocks[-1]["seller_id"] = seller["_id"]  # Add seller_id to block for reference
+    return all_blocks
+
 def getResourceUsage(sellers, bidders):
     supply = 0
     if sellers:
@@ -226,21 +230,55 @@ def getResourceUsage(sellers, bidders):
     return supply, demand
 
 
+def find_combinations(blocks, target_quantity, current_combination=[], start=0):
+    """
+    Recursively finds combinations of blocks that meet or exceed the target quantity.
+    """
+    total_quantity = sum(block["quantity"] for block in current_combination)
+    if total_quantity >= target_quantity:
+        return [current_combination]
+
+    if start >= len(blocks):
+        return []
+
+    combinations = []
+    # Include current block
+    include_current = find_combinations(blocks, target_quantity, current_combination + [blocks[start]], start + 1)
+    # Exclude current block
+    exclude_current = find_combinations(blocks, target_quantity, current_combination, start + 1)
+
+    combinations.extend(include_current)
+    combinations.extend(exclude_current)
+
+    return combinations
+
+def evaluate_combinations(combinations):
+    # Example: Find combination with least waste
+    best_combination = None
+    least_waste = float('inf')
+    for combination in combinations:
+        total_quantity = sum(block["quantity"] for block in combination)
+        waste = total_quantity - target_quantity
+        if waste < least_waste:
+            best_combination = combination
+            least_waste = waste
+    return best_combination
+
 def initSellers(sellers):
     sellerList = []
     noAuctions = 0
     for sellerKey in sellers:
         entity = Sellers.Sellers(sellerKey, sellers[sellerKey]["location"])
         firstBlock = sellers[sellerKey]["blocks"].pop("block1")
-        entity.quantity.append(firstBlock[0]['quantity'])
+        entity.quantity.append(firstBlock['quantity'])
         entity.genBlock(
-            firstBlock[1]["price"], firstBlock[0]["quantity"], firstBlock[2]["discount"]
+            firstBlock["price"], firstBlock["quantity"], firstBlock["discount"]
         )
         noAuctions += 1
         for block in sellers[sellerKey]["blocks"].items():
-            entity.quantity.append(block[1][0]['quantity'])
+            entity.quantity.append(block[1]['quantity'])
             entity.addBlock(
-                block[1][1]["price"], block[1][0]["quantity"], block[1][2]["discount"]
+                block[1]["price"], block[1]["quantity"], block[1]["discount"]
             )
             noAuctions += 1
         sellerList.append(entity)
@@ -284,23 +322,27 @@ def start(skipPrompts):
     slotSize, endThreshold, sellerList, bidderList = readConfig(skipPrompts)
     fairness = 1
     #TODO Serialize matchmaking results and store in appropriate way
-    matchmakingResults = matchMakingCalculation(sellerList, bidderList)
-    fairness = matchmakingResults[0].get('fairness', None)
-    distance = matchmakingResults[0].get('avgDistance', None)
+    #matchmakingResults = matchMakingCalculation(sellerList, bidderList)
+    #fairness = matchmakingResults[0].get('fairness', None)
+    #distance = matchmakingResults[0].get('avgDistance', None)
+    fairness = 1
+    distance = 1
     print(f"Best fairness value: {fairness}")
     print(f"Average distance {distance}")
     if fairness == None:
         print("No valid combinations were found")
     if skipPrompts:
-        mp = matchmakingResults[0]['avgPrice']
+        #mp = matchmakingResults[0]['avgPrice']
+        mp = 12
         for bidder in bidderList:               # Give bidders a marketprice (price per unit) in order to formulate bids
             bidder.setMarketprice(mp)
         engine = SimEngine(sellerList, bidderList, slotSize, endThreshold)
         auctionResults = engine.simStart()
     else:
         auctionResults = []
-    
-    return matchmakingResults, auctionResults
+
+    #return matchmakingResults, auctionResults
+    return auctionResults
 
 if __name__ == "__main__":
     start(False)

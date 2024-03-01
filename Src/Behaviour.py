@@ -2,7 +2,7 @@ import math
 import random
 
 def randomBehaviour():
-    behaviourList = ["B"]
+    behaviourList = ["A", "B"]
     return random.choice(behaviourList)
 
 def genBehaviour(input):

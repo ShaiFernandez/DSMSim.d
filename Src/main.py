@@ -121,6 +121,13 @@ def readConfig(skipPrompts):
     if conf["distance-penalty"] != None:
         overridePenalty(bidders, conf["distance-penalty"])
 
+    noAuctions, sellerList = initSellers(sellers)
+    bidderList = initBidders(bidders, math.ceil(noAuctions / conf["slotsize"]))
+
+    print(sellerList)
+    print(bidderList)
+    #return conf['slotsize'], conf['end-threshold'], sellerList, bidderList
+    #return conf['slotsize'], conf['end-threshold'], sellerList
     return conf['slotsize'], conf['end-threshold']
 
 
@@ -198,7 +205,8 @@ def genBlocks(values, seller_id):
         # si se cambia de lista a objecto es decir de [] a {} mejora la data en mongodb
         block_data = {
             "quantity": quantity,
-            "price": random.randrange(1, 3) * quantity,
+            #"price": random.randrange(1, 3) * quantity,
+            "price": quantity,
             "discount": discount,
             "seller_id": seller_id,
             "highest_bid": {"amount": 0, "bidder_id": None},  # Placeholder for the highest bid
@@ -390,6 +398,44 @@ def conduct_auction(blocks, bidders, num_rounds):
         # Optionally, you can retrieve and display all bids here or after all rounds
 
 
+def initSellers(sellers):
+    sellerList = []
+    noAuctions = 0
+    for sellerKey in sellers:
+        entity = Sellers.Sellers(sellerKey, sellers[sellerKey]["location"])
+        firstBlock = sellers[sellerKey]["blocks"].pop("block1")
+        entity.quantity.append(firstBlock[0]['quantity'])
+        entity.genBlock(
+            firstBlock[1]["price"], firstBlock[0]["quantity"], firstBlock[2]["discount"]
+        )
+        noAuctions += 1
+        for block in sellers[sellerKey]["blocks"].items():
+            entity.quantity.append(block[1][0]['quantity'])
+            entity.addBlock(
+                block[1][1]["price"], block[1][0]["quantity"], block[1][2]["discount"]
+            )
+            noAuctions += 1
+        sellerList.append(entity)
+    return noAuctions, sellerList
+
+
+def initBidders(bidders, maxRounds):
+    bidderList = []
+    for bidder in bidders.items():
+        data = bidder[1]
+        entity = Bidders(
+            bidder[0],
+            data["location"],
+            data["need"],
+            maxRounds,
+            Behaviour.genBehaviour(data["behavior"]),
+            data["distanceLimit"],
+            data["distancePenalty"]
+        )
+        bidderList.append(entity)
+    return bidderList
+
+
 # Source with explanation: https://stackoverflow.com/a/50746409
 def genLocation(radius):
     "Generate x,y points within circle with set radius with center in 0,0"
@@ -410,23 +456,13 @@ def overridePenalty(bidders, penalty):
 def start(skipPrompts):
     slotSize, endThreshold = readConfig(skipPrompts)
     fairness = 1
-    #TODO Serialize matchmaking results and store in appropriate way
-    #matchmakingResults = matchMakingCalculation(sellerList, bidderList)
-    #fairness = matchmakingResults[0].get('fairness', None)
-    #distance = matchmakingResults[0].get('avgDistance', None)
+
     fairness = 1
     distance = 1
     print(f"Best fairness value: {fairness}")
     print(f"Average distance {distance}")
     if fairness == None:
         print("No valid combinations were found")
-    #if skipPrompts:
-        #mp = matchmakingResults[0]['avgPrice']
-        mp = 12
-        #for bidder in bidderList:               # Give bidders a marketprice (price per unit) in order to formulate bids
-        #    bidder.setMarketprice(mp)
-        #engine = SimEngine(sellerList, bidderList, slotSize, endThreshold)
-        #auctionResults = engine.simStart()
     else:
         auctionResults = []
 

@@ -106,9 +106,9 @@ def readConfig(skipPrompts):
     print(f"evalution = {evaluation}")
     print(f"most_fair_combination = {most_fair_combination}")
 
-
+    max_rounds = 5
     # Example: Conduct 5 auction rounds
-    conduct_auction(all_blocks, bidders, 5)
+    conduct_auction(all_blocks, bidders, max_rounds)
 
     # Retrieve and display all bids after the auction
     all_bids = retrieve_all_bids()
@@ -121,10 +121,10 @@ def readConfig(skipPrompts):
     if conf["distance-penalty"] != None:
         overridePenalty(bidders, conf["distance-penalty"])
 
-    noAuctions, sellerList = initSellers(sellers)
-    bidderList = initBidders(bidders, math.ceil(noAuctions / conf["slotsize"]))
+    #noAuctions, sellerList = initSellers(sellers)
+    bidderList = initBidders(bidders, max_rounds)
 
-    print(sellerList)
+    #print(sellerList)
     print(bidderList)
     #return conf['slotsize'], conf['end-threshold'], sellerList, bidderList
     #return conf['slotsize'], conf['end-threshold'], sellerList
@@ -398,25 +398,10 @@ def conduct_auction(blocks, bidders, num_rounds):
         # Optionally, you can retrieve and display all bids here or after all rounds
 
 
-def initSellers(sellers):
-    sellerList = []
-    noAuctions = 0
-    for sellerKey in sellers:
-        entity = Sellers.Sellers(sellerKey, sellers[sellerKey]["location"])
-        firstBlock = sellers[sellerKey]["blocks"].pop("block1")
-        entity.quantity.append(firstBlock[0]['quantity'])
-        entity.genBlock(
-            firstBlock[1]["price"], firstBlock[0]["quantity"], firstBlock[2]["discount"]
-        )
-        noAuctions += 1
-        for block in sellers[sellerKey]["blocks"].items():
-            entity.quantity.append(block[1][0]['quantity'])
-            entity.addBlock(
-                block[1][1]["price"], block[1][0]["quantity"], block[1][2]["discount"]
-            )
-            noAuctions += 1
-        sellerList.append(entity)
-    return noAuctions, sellerList
+#def initSellers(sellers):
+    #sellerList = []
+    #noAuctions = 0
+    #return noAuctions, sellerList
 
 
 def initBidders(bidders, maxRounds):
@@ -428,7 +413,7 @@ def initBidders(bidders, maxRounds):
             data["location"],
             data["need"],
             maxRounds,
-            Behaviour.genBehaviour(data["behavior"]),
+            data["behavior"],
             data["distanceLimit"],
             data["distancePenalty"]
         )
@@ -456,13 +441,19 @@ def overridePenalty(bidders, penalty):
 def start(skipPrompts):
     slotSize, endThreshold = readConfig(skipPrompts)
     fairness = 1
-
+    #matchmakingResults = matchMakingCalculation(sellerList, bidderList)
     fairness = 1
     distance = 1
     print(f"Best fairness value: {fairness}")
     print(f"Average distance {distance}")
     if fairness == None:
         print("No valid combinations were found")
+    #if skipPrompts:
+    #    mp = matchmakingResults[0]['avgPrice']
+    #    for bidder in bidderList:  # Give bidders a marketprice (price per unit) in order to formulate bids
+    #        bidder.setMarketprice(mp)
+    #    engine = SimEngine(sellerList, bidderList, slotSize, endThreshold)
+    #    auctionResults = engine.simStart()
     else:
         auctionResults = []
 

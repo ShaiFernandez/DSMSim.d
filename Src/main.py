@@ -404,6 +404,20 @@ def conduct_auction(blocks, bidders, num_rounds):
     #return noAuctions, sellerList
 
 
+def initSellers(sellers):
+    sellerList = []
+    noAuctions = 0
+    for seller in sellers.items():
+        data = seller[1]
+        entity = Bidders(
+            seller[0],
+            data["location"],
+            data["blocks"],
+        )
+        sellerList.append(entity)
+    return noAuctions, sellerList
+
+
 def initBidders(bidders, maxRounds):
     bidderList = []
     for bidder in bidders.items():

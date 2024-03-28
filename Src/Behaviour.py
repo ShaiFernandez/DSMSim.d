@@ -21,33 +21,19 @@ class typeA:
         self.aggressiveness = random.uniform(0.8, 0.9)  # How "aggressive" bids are, effectively scales the bid size
         self.marketPriceFactor = random.uniform(0.8, 1)  # How many % of marketprice (price per unit) to bid with
         self.stopBid = random.uniform(1, 1.1)  # In which range of the expected price to stop bidding at
-        self.bidLikelyhood = random.uniform(0.8, 1)
+        self.bidLikelihood = random.uniform(0.8, 1)
 
     # Higher level function to run the adaptive updates
-    def updateVariables(self, currentRound, maxRound):
-        self.adaptiveAggressiveness(currentRound, maxRound)
-        self.adaptiveMPFactor(currentRound, maxRound)
-        self.adaptiveStopBid(currentRound, maxRound)
+    def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
+        if unfulfilledNeed > 0.5:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
 
-    # Can create functions in order to scale the aggressivity depending on how many rounds of auctions are left
-    def adaptiveAggressiveness(self, currentRound, maxRound):
-        self.aggressiveness = self.aggressiveness * 1
-
-    # Can create functions to scale bid size depending on how many rounds of auctions are left
-    def adaptiveMPFactor(self, currentRound, maxRound):
-        self.marketPriceFactor = self.marketPriceFactor * 1
-
-    # Insert functions to scale bid stop depending on how many rounds of auctions are left
-    def adaptiveStopBid(self, currentRound, maxRound):
-        self.stopBid = self.stopBid * 1
-
-    # Return the likelyhood of bidding depending on various factors available
-    # Will be compared to a random value in range [0,1], returning 0.8 will be 80% likelyhood to bid etc
-    # bidIndex: number of bidding opportunities in the current set of auctions
-    # unfulfilledNeed: % of need which is unfulfilled
-    # distance: % of distance limit (to be able to favor auctions in close proximity etc)
-    def adaptiveBidLikelyhoood(self, currentRound, maxRound, bidIndex, unfulfilledNeed, distance):
-        return self.bidLikelyhood * 1
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.1  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.2  # Increase aggressiveness in the late stages
 
 
 class typeB:
@@ -55,30 +41,16 @@ class typeB:
         self.aggressiveness = random.uniform(0.4, 0.6)      # How "aggressive" bids are, effectively scales the bid size
         self.marketPriceFactor = random.uniform(0.8, 1)     # How many % of marketprice (price per unit) to bid with
         self.stopBid = random.uniform(1, 1.1)               # In which range of the expected price to stop bidding at
-        self.bidLikelyhood = random.uniform(0.8, 1)
+        self.bidLikelihood = random.uniform(0.8, 1)
 
     # Higher level function to run the adaptive updates
-    def updateVariables(self, currentRound, maxRound):
-        self.adaptiveAggressiveness(currentRound, maxRound)
-        self.adaptiveMPFactor(currentRound, maxRound)
-        self.adaptiveStopBid(currentRound, maxRound)
+    def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
+        if unfulfilledNeed > 0.5:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
 
-    # Can create functions in order to scale the aggressivity depending on how many rounds of auctions are left
-    def adaptiveAggressiveness(self, currentRound, maxRound):
-        self.aggressiveness = self.aggressiveness * 1
-
-    # Can create functions to scale bid size depending on how many rounds of auctions are left
-    def adaptiveMPFactor(self, currentRound, maxRound):
-        self.marketPriceFactor = self.marketPriceFactor * 1
-    
-    # Insert functions to scale bid stop depending on how many rounds of auctions are left
-    def adaptiveStopBid(self, currentRound, maxRound):
-        self.stopBid = self.stopBid * 1
-
-    # Return the likelyhood of bidding depending on various factors available
-    # Will be compared to a random value in range [0,1], returning 0.8 will be 80% likelyhood to bid etc
-    # bidIndex: number of bidding opportunities in the current set of auctions
-    # unfulfilledNeed: % of need which is unfulfilled
-    # distance: % of distance limit (to be able to favor auctions in close proximity etc)
-    def adaptiveBidLikelyhoood(self, currentRound, maxRound, bidIndex, unfulfilledNeed, distance):
-        return self.bidLikelyhood * 1
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.1  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.2  # Increase aggressiveness in the late stages

@@ -1,33 +1,50 @@
-import requests
+import random
+import math
+import json
 
+def load_locations(file_path):
+    with open(file_path, 'r') as file:
+        return json.load(file)
 
-def get_coordinates_from_address(address, google_maps_api_key):
+# Load the seed file
+seed_locations = load_locations('locations.json')
+
+def genLocation(locations, radius):
     """
-    Use the Google Maps Geocoding API to get the latitude and longitude of a given address.
+    Generate a random location within a specified radius around a central point from a list of locations.
 
-    :param address: The address to geocode.
-    :param google_maps_api_key: Your Google Maps API key.
-    :return: A tuple containing the latitude and longitude of the address.
+    Args:
+    - locations (list): A list of locations loaded from the seed file.
+    - radius (float): The radius around the center point within which to generate a location, in meters.
+
+    Returns:
+    - A dictionary with the selected city's details and the generated latitude and longitude.
     """
-    base_url = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {"address": address, "key": google_maps_api_key}
-    response = requests.get(base_url, params=params)
+    # Select a random city from the list
+    city = random.choice(locations)
 
-    if response.status_code == 200:
-        data = response.json()
-        if data["status"] == "OK":
-            # Extract latitude and longitude
-            latitude = data["results"][0]["geometry"]["location"]["lat"]
-            longitude = data["results"][0]["geometry"]["location"]["lng"]
-            return latitude, longitude
-        else:
-            return None, None  # Address not found or API limit exceeded
-    else:
-        return None, None  # Request failed
+    # Convert radius from meters to degrees (approximation)
+    radius_in_degrees = radius / 111000  # Rough approximation
+
+    # Generate random angle
+    angle = random.uniform(0, 2 * math.pi)
+
+    # Calculate delta latitude and longitude
+    delta_lat = radius_in_degrees * math.cos(angle)
+    delta_lon = radius_in_degrees * math.sin(angle) / math.cos(math.radians(city['latitude']))
+
+    # Generate new coordinates
+    new_lat = city['latitude'] + delta_lat
+    new_lon = city['longitude'] + delta_lon
+
+    # Add the new coordinates to the city's details
+    city['generated_latitude'] = new_lat
+    city['generated_longitude'] = new_lon
+
+    return city
 
 
 # Example usage
-google_maps_api_key = "YOUR_API_KEY_HERE"
-address = "1600 Amphitheatre Parkway, Mountain View, CA"
-latitude, longitude = get_coordinates_from_address(address, google_maps_api_key)
-print(f"Coordinates: Latitude = {latitude}, Longitude = {longitude}")
+radius = 1000  # Radius in meters
+generated_location = genLocation(seed_locations, radius)
+print(generated_location)

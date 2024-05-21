@@ -49,6 +49,17 @@ class typeA:
             self.bidLikelihood += 0.2  # Increase bid likelihood in the final quarters
             self.aggressiveness *= 1.2  # Increase aggressiveness in the late stages
 
+    def updateVariablesRound(self, currentRound, maxRound, difference):
+        if difference > 0:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
+
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.2  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.2  # Increase aggressiveness in the late stages
+
     def asdict(self):
         return {'behavior_type': "A", 'aggressiveness': self.aggressiveness, 'marketPriceFactor': self.marketPriceFactor, 'stopBid': self.stopBid, 'bidLikelihood': self.bidLikelihood}
 
@@ -63,6 +74,17 @@ class typeB:
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
         if unfulfilledNeed > 0.5:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
+
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.1  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.15  # Increase aggressiveness in the late stages
+
+    def updateVariablesRound(self, currentRound, maxRound, difference):
+        if difference > 0:
             self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
         else:
             self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
@@ -95,6 +117,17 @@ class typeC:
             self.bidLikelihood += 0.05  # Increase bid likelihood in the final quarters
             self.aggressiveness *= 1.1  # Increase aggressiveness in the late stages
 
+    def updateVariablesRound(self, currentRound, maxRound, difference):
+        if difference > 0:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
+
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.05  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.1  # Increase aggressiveness in the late stages
+
     def asdict(self):
         return {'behavior_type': "C", 'aggressiveness': self.aggressiveness, 'marketPriceFactor': self.marketPriceFactor, 'stopBid': self.stopBid, 'bidLikelihood': self.bidLikelihood}
 
@@ -109,6 +142,18 @@ class typeD:
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
         if unfulfilledNeed > 0.5:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
+
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.2  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.2  # Increase aggressiveness in the late stages
+
+
+    def updateVariablesRound(self, currentRound, maxRound, difference):
+        if difference > 0:
             self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
         else:
             self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
@@ -141,6 +186,18 @@ class typeE:
             self.bidLikelihood += 0.1  # Increase bid likelihood in the final quarters
             self.aggressiveness *= 1.15  # Increase aggressiveness in the late stages
 
+
+    def updateVariablesRound(self, currentRound, maxRound, difference):
+        if difference > 0:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
+
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.1  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.15  # Increase aggressiveness in the late stages
+
     def asdict(self):
         return {'behavior_type': "E", 'aggressiveness': self.aggressiveness, 'marketPriceFactor': self.marketPriceFactor, 'stopBid': self.stopBid, 'bidLikelihood': self.bidLikelihood}
 
@@ -155,6 +212,17 @@ class typeF:
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
         if unfulfilledNeed > 0.5:
+            self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
+        else:
+            self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low
+
+        progress_ratio = currentRound / maxRound
+        if progress_ratio > 0.75:
+            self.bidLikelihood += 0.05  # Increase bid likelihood in the final quarters
+            self.aggressiveness *= 1.1  # Increase aggressiveness in the late stages
+
+    def updateVariablesRound(self, currentRound, maxRound, difference):
+        if difference > 0:
             self.aggressiveness *= 1.1  # Increase aggressiveness if unfulfilled need is high
         else:
             self.aggressiveness *= 0.9  # Decrease aggressiveness if unfulfilled need is low

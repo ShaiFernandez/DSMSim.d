@@ -754,7 +754,7 @@ def conduct_auction_round(blocks, bidders, current_round, total_rounds):
         #col_bidders.update_one({"_id": bidder_id}, new_bidder_behavior)
 
         # Adjust behavior based on the current round, maximum round, and unfulfilled need
-        bidder_behavior.updateVariables(current_round, total_rounds, unfulfilled_need)
+        #bidder_behavior.updateVariables(current_round, total_rounds, unfulfilled_need)
 
         # Add the updated bidder_data to the bidders dictionary
         bidders[bidder_key]['behavior'] = bidder_behavior.asdict()
@@ -765,6 +765,11 @@ def conduct_auction_round(blocks, bidders, current_round, total_rounds):
         # Check if the bidder will place a bid based on bid likelihood
         if random.random() < bid_likelihood:
             for block in blocks:
+
+                # Adjust behavior based on the current round, maximum round, and difference need
+                difference = block["quantity"] - bidder_info["need"]
+                bidder_behavior.updateVariablesRound(current_round, total_rounds, difference)
+
                 # Generate a random bid for demonstration purposes
                 bid_amount = calculate_bid_amount(block, bidder_info)
                 success, message = place_bid(block['_id'], bidder_id, bid_amount)

@@ -508,9 +508,23 @@ def calculate_jains_fairness_index(quantities, target_quantity):
     if not quantities:
         return 0  # Avoid division by zero
 
-    scaled_quantities = [q / target_quantity for q in quantities]
-    sum_of_scaled = sum(scaled_quantities)
-    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
+    #scaled_quantities = [q / target_quantity for q in quantities]
+    #sum_of_scaled = sum(scaled_quantities)
+    #sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
+    #n = len(quantities)
+    #fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
+    #return fairness_index
+
+    scaled_quantities = [q - target_quantity for q in quantities]
+    min_value = min(scaled_quantities)
+    if min_value < 0:
+        scaled_quantities_min = [q + abs(min_value) for q in scaled_quantities]
+        sum_of_scaled = sum(scaled_quantities_min)
+        sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities_min)
+    else:
+        sum_of_scaled = sum(scaled_quantities)
+        sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
+
     n = len(quantities)
     fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
     return fairness_index

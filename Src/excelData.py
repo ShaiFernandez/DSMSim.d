@@ -2,7 +2,7 @@ import pandas as pd
 from bson import ObjectId  # If using ObjectId, make sure to import it for handling
 
 
-def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block):
+def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block, list_prints, list_prints_blocks):
     # Flattening the data
     rows = []
     for bidder, info in bidders.items():
@@ -109,6 +109,18 @@ def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation
     df_bids = pd.DataFrame(bid_rows)
 
 
+    # Flatten the bids data
+    prints_rows = []
+    for printer in list_prints:
+        row = {
+            'Auction by round': printer,
+        }
+        prints_rows.append(row)
+
+    # Create DataFrame for bids
+    df_prints_round = pd.DataFrame(prints_rows)
+
+
     # Flatten the evaluations data
     bid_evaluation_rows = []
     for evaluation_bid in bid_evaluation:
@@ -161,6 +173,19 @@ def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation
     df_bids_by_block = pd.DataFrame(bid_rows_by_block)
 
 
+    # Flatten the bids data
+    prints_blocks_rows = []
+    for printer in list_prints_blocks:
+        row = {
+            'Auction by round': printer,
+        }
+        prints_blocks_rows.append(row)
+
+    # Create DataFrame for bids
+    df_prints_blocks = pd.DataFrame(prints_blocks_rows)
+
+
+
     # Flatten the evaluations data
     bid_evaluation_rows_by_block = []
     for evaluation_bid in bid_evaluation_by_block:
@@ -204,7 +229,9 @@ def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation
         df.to_excel(writer, sheet_name='Bidders', index=False)  # Assuming df is your DataFrame from the bidders
         df_sellers.to_excel(writer, sheet_name='Sellers', index=False)
         df_evaluations.to_excel(writer, sheet_name='evaluation_results.xlsx', index=False)
-        df_bids.to_excel(writer, sheet_name='bid_results.xlsx', index=False)
-        df_bid_evaluations.to_excel(writer, sheet_name='bids_evaluation_results.xlsx', index=False)
+        #df_bids.to_excel(writer, sheet_name='bid_results.xlsx', index=False)
+        #df_prints_round.to_excel(writer, sheet_name='auction_results_round.xlsx', index=False)
+        #df_bid_evaluations.to_excel(writer, sheet_name='bids_evaluation_results.xlsx', index=False)
         df_bids_by_block.to_excel(writer, sheet_name='bid_by_block.xlsx', index=False)
+        df_prints_blocks.to_excel(writer, sheet_name='auction_results_block.xlsx', index=False)
         df_bid_evaluations_by_block.to_excel(writer, sheet_name='bids_evaluation_by_block.xlsx', index=False)

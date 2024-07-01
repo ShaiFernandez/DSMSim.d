@@ -98,6 +98,8 @@ def readConfig(skipPrompts):
 
     #  evaluate logic
     list_evaluations = []
+    list_prints = []
+    list_prints_block = []
     all_blocks = retrieve_all_blocks()
     for bidder_key, bidder_info in bidders.items():
         bidder = bidders[bidder_key]
@@ -128,7 +130,7 @@ def readConfig(skipPrompts):
     # print(f"combinations = {fair_combination}")
 
     # Example: Conduct 5 auction rounds
-    conduct_auction(all_blocks, bidders, 10)
+    conduct_auction(all_blocks, bidders, 10, list_prints)
     all_bids = retrieve_all_bids()
     print("All bids:", all_bids)
     # Retrieve and display all bids after the auction
@@ -143,7 +145,7 @@ def readConfig(skipPrompts):
         # Update the bidder_data with the MongoDB-generated _id
         col_blocks.update_one({"_id": block_id}, new_highest_bid)
 
-    conduct_auction_by_block(all_blocks, bidders, 10)
+    conduct_auction_by_block(all_blocks, bidders, 10, list_prints_block)
     all_bids_by_block = retrieve_all_bids()
     print("All bids by block:", all_bids_by_block)
     bid_evaluation_by_block = evaluate_winning_bids(all_bids_by_block)
@@ -157,7 +159,7 @@ def readConfig(skipPrompts):
     if conf["distance-penalty"] != None:
         overridePenalty(bidders, conf["distance-penalty"])
 
-    return bidders, sellers, list_evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block
+    return bidders, sellers, list_evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block, list_prints, list_prints_block
 
 
 def genConfig():
@@ -235,7 +237,8 @@ def genBlocks(values, seller_id):
         # si se cambia de lista a objecto es decir de [] a {} mejora la data en mongodb
         block_data = {
             "quantity": quantity,
-            "price": random.randrange(1, 3) * quantity,
+            #"price": random.randrange(1, 3) * quantity,
+            "price": quantity,
             #"discount": discount,
             "seller_id": seller_id,
             "highest_bid": {"amount": 0, "bidder_id": None},  # Placeholder for the highest bid
@@ -378,7 +381,7 @@ def evaluate_combinations(combinations, target_quantity, bidder, sellers):
         total_quantity = sum(block["quantity"] for block in combination)
         waste = total_quantity - target_quantity
 
-        additional_cost_percentage = calculate_waste_taxation(waste, total_quantity)
+        additional_cost_percentage = calculate_waste_taxation(waste, target_quantity)
         print(f"Additional cost due to waste: {additional_cost_percentage}%")
 
         # Assuming you have a way to calculate the average distance for this combination
@@ -405,7 +408,7 @@ def evaluate_combinations(combinations, target_quantity, bidder, sellers):
         print(f"fairness index: {fairness_index}")
 
 
-        norm_env_impact = invert_normalize(additional_cost_due_to_co2 + additional_cost_percentage, 15)
+        norm_env_impact = invert_normalize(additional_cost_due_to_co2 + additional_cost_percentage, 60)
         print(f"Normalize value: {norm_env_impact}")
 
         weight_waste_co2 = 0.5  # 50% importance
@@ -508,26 +511,32 @@ def calculate_jains_fairness_index(quantities, target_quantity):
     if not quantities:
         return 0  # Avoid division by zero
 
-    #scaled_quantities = [q / target_quantity for q in quantities]
-    #sum_of_scaled = sum(scaled_quantities)
-    #sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
-    #n = len(quantities)
-    #fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
-    #return fairness_index
-
     scaled_quantities = [q - target_quantity for q in quantities]
-    min_value = min(scaled_quantities)
-    if min_value < 0:
-        scaled_quantities_min = [q + abs(min_value) for q in scaled_quantities]
-        sum_of_scaled = sum(scaled_quantities_min)
-        sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities_min)
-    else:
-        sum_of_scaled = sum(scaled_quantities)
-        sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
-
+    sum_of_scaled = sum(scaled_quantities)
+    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
     n = len(quantities)
     fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
     return fairness_index
+    #fairness_index_ind = []
+    #for q in quantities:
+    #    sum_scaled = q ** 2 + target_quantity ** 2
+    #    sum_scaled_div = 2 * ((q + target_quantity) ** 2)
+    #    fairness_index_ind.append(sum_scaled / sum_scaled_div)
+    #fairness_index = sum(fairness_index_ind) / len(fairness_index_ind)
+
+    #scaled_quantities = [q / target_quantity for q in quantities]
+    #min_value = min(scaled_quantities)
+    #if min_value < 0:
+    #    scaled_quantities_min = [q + abs(min_value) for q in scaled_quantities]
+    #    sum_of_scaled = sum(scaled_quantities_min)
+    #    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities_min)
+    #else:
+    #    sum_of_scaled = sum(scaled_quantities)
+    #    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
+
+    #n = len(quantities)
+    #fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
+    #return fairness_index
 
 
 
@@ -602,10 +611,20 @@ def calculate_waste_taxation(waste, total_product_volume):
     # Apply taxation based on waste percentage
     if waste_percentage < 5:
         return 0  # No additional cost for waste below 5%
-    elif 5 <= waste_percentage < 15:
-        return 5  # Moderate increase for waste between 5% and 15%
+    elif 5 <= waste_percentage < 10:
+        return 2  # Moderate increase for waste between % and %
+    elif 10 <= waste_percentage < 20:
+        return 4  # Higher increase for waste above %
+    elif 20 <= waste_percentage < 50:
+        return 6  # Higher increase for waste above %
+    elif 50 <= waste_percentage < 100:
+        return 10  # Higher increase for waste above %
+    elif 100 <= waste_percentage < 150:
+        return 15  # Higher increase for waste above %
+    elif 150 <= waste_percentage < 300:
+        return 20  # Higher increase for waste above %
     else:
-        return 7.5  # Higher increase for waste above 15%
+        return 30  # Higher increase for waste above %
 
 
 def calculate_co2_taxation(emissions_info):
@@ -636,12 +655,22 @@ def calculate_co2_taxation(emissions_info):
     #co2_emissions_percentage = co2_emissions - base_co2_emissions
 
     # Apply taxation based on waste percentage
-    if (co2_emissions < 500 and recommended_mode == "truck") or (co2_emissions < 1000 and recommended_mode != "truck"):
+    if (co2_emissions < 150 and recommended_mode == "truck") or (co2_emissions < 400 and recommended_mode != "truck"):
         return 0  # No additional cost for waste below 5%
-    elif (co2_emissions < 750 and recommended_mode == "truck") or (co2_emissions < 1350 and recommended_mode != "truck"):
-        return 5  # Moderate increase for waste between 5% and 10%
+    elif (co2_emissions < 250 and recommended_mode == "truck") or (co2_emissions < 700 and recommended_mode != "truck"):
+        return 2  # Moderate increase for waste between 5% and 10%
+    elif (co2_emissions < 400 and recommended_mode == "truck") or (co2_emissions < 1000 and recommended_mode != "truck"):
+        return 4  # Moderate increase for waste between 5% and 10%
+    elif (co2_emissions < 600 and recommended_mode == "truck") or (co2_emissions < 1500 and recommended_mode != "truck"):
+        return 6  # Moderate increase for waste between 5% and 10%
+    elif (co2_emissions < 800 and recommended_mode == "truck") or (co2_emissions < 2000 and recommended_mode != "truck"):
+        return 10  # Moderate increase for waste between 5% and 10%
+    elif (co2_emissions < 1000 and recommended_mode == "truck") or (co2_emissions < 2750 and recommended_mode != "truck"):
+        return 15  # Moderate increase for waste between 5% and 10%
+    elif (co2_emissions < 1250 and recommended_mode == "truck") or (co2_emissions < 3500 and recommended_mode != "truck"):
+        return 20  # Moderate increase for waste between 5% and 10%
     else:
-        return 7.5  # Higher increase for waste above 10%
+        return 30  # Higher increase for waste above 10%
 
 
 
@@ -734,20 +763,24 @@ def place_bid(block_id, bidder_id, bid_amount):
     return True, "Bid placed successfully."
 
 
-def conduct_auction(blocks, bidders, num_rounds):
+def conduct_auction(blocks, bidders, num_rounds, list_prints):
     bids_placed = True  # Flag to track if any bids were placed in any round
     for i in range(num_rounds):
         if bids_placed:
+            message_print = f"Conducting auction round {i + 1}..."
+            list_prints.append(message_print)
             print(f"Conducting auction round {i + 1}...")
         else:
+            message_print = f"No bids placed in round {i + 1}. Ending auction rounds."
+            list_prints.append(message_print)
             print(f"No bids placed in round {i + 1}. Ending auction rounds.")
             break
 
-        bids_placed = conduct_auction_round(blocks, bidders, i + 1, num_rounds)
+        bids_placed = conduct_auction_round(blocks, bidders, i + 1, num_rounds, list_prints)
         # Optionally, you can retrieve and display all bids here or after all rounds
 
 
-def conduct_auction_round(blocks, bidders, current_round, total_rounds):
+def conduct_auction_round(blocks, bidders, current_round, total_rounds, list_prints):
     #print(f"Conducting auction round {current_round}...")
     bids_placed = False  # Flag to track if any bids were placed in this round
     for bidder_key, bidder_info in bidders.items():
@@ -788,10 +821,18 @@ def conduct_auction_round(blocks, bidders, current_round, total_rounds):
                 bid_amount = calculate_bid_amount(block, bidder_info)
                 success, message = place_bid(block['_id'], bidder_id, bid_amount)
                 if not success:
+                    message_print = f"Failed to place bid: {message}"
+                    list_prints.append(message_print)
                     print(f"Failed to place bid: {message}")
                 else:
+                    message_print = f"Bid of {bid_amount} placed on block {block['_id']} by bidder {bidder_id}"
+                    list_prints.append(message_print)
                     print(f"Bid of {bid_amount} placed on block {block['_id']} by bidder {bidder_id}")
                     bids_placed = True  # Set the flag to indicate that a bid was placed
+        else:
+            message_print = f"Failed to place bid {bidder_id} in round {current_round}: not bid based on likelihood"
+            list_prints.append(message_print)
+            print(f"Failed to place bid {bidder_id} in round {current_round}: not bid based on likelihood")
 
     return bids_placed
 
@@ -807,13 +848,17 @@ def calculate_bid_amount(block, bidder_info):
     return bid_amount if bid_amount <= block["price"] * bidder_info["behavior"]["stopBid"] else 0
 
 
-def conduct_auction_by_block(blocks, bidders, num_rounds):
+def conduct_auction_by_block(blocks, bidders, num_rounds, list_prints_block):
     for block in blocks:
+        message_print = f"Starting auction rounds for block {block['_id']}..."
+        list_prints_block.append(message_print)
         print(f"Starting auction rounds for block {block['_id']}...")
         for i in range(num_rounds):
+            message_print = f"Conducting round {i + 1} for block {block['_id']}..."
+            list_prints_block.append(message_print)
             print(f"Conducting round {i + 1} for block {block['_id']}...")
             # Call a modified auction round function that deals with a single block
-            conduct_single_block_round(block, bidders, i + 1, num_rounds)
+            conduct_single_block_round(block, bidders, i + 1, num_rounds, list_prints_block)
         change = col_blocks.find_one({'_id': block['_id']})
         for bidder_key, bidder_info in bidders.items():
             bidder_id = bidder_info['_id']
@@ -822,7 +867,7 @@ def conduct_auction_by_block(blocks, bidders, num_rounds):
                 bidders[bidder_key]['fulfilled_need'] += change['quantity']
 
 
-def conduct_single_block_round(block, bidders, current_round, total_rounds):
+def conduct_single_block_round(block, bidders, current_round, total_rounds, list_prints_block):
     # This function conducts a single round for a single block
     bids_placed = False  # Flag to check if any bids were placed
 
@@ -864,14 +909,22 @@ def conduct_single_block_round(block, bidders, current_round, total_rounds):
             bid_amount = calculate_bid_amount(block, bidder_info)  # Assumes this function exists
             success, message = place_bid(block['_id'], bidder_id, bid_amount)
             if not success:
+                message_print = f"Failed to place bid for block {block['_id']} in round {current_round}: {message}"
+                list_prints_block.append(message_print)
                 print(f"Failed to place bid for block {block['_id']} in round {current_round}: {message}")
             else:
+                message_print = f"Bid of {bid_amount} placed on block {block['_id']} by bidder {bidder_id}"
+                list_prints_block.append(message_print)
                 print(f"Bid of {bid_amount} placed on block {block['_id']} by bidder {bidder_id}")
                 bids_placed = True
         else:
+            message_print = f"Failed to place bid for block {block['_id']} in round {current_round}: not bid based on likelihood"
+            list_prints_block.append(message_print)
             print(f"Failed to place bid for block {block['_id']} in round {current_round}: not bid based on likelihood")
 
     if not bids_placed:
+        message_print = f"No bids placed for block {block['_id']} in round {current_round}."
+        list_prints_block.append(message_print)
         print(f"No bids placed for block {block['_id']} in round {current_round}.")
 
 
@@ -950,7 +1003,7 @@ def evaluate_winning_bids(all_bids):
         total_quantity = sum(block["quantity"] for block in blocks)
         waste = total_quantity - target_quantity
 
-        additional_cost_percentage = calculate_waste_taxation(waste, total_quantity)
+        additional_cost_percentage = calculate_waste_taxation(waste, target_quantity)
         print(f"Additional cost due to waste: {additional_cost_percentage}%")
 
         # Assuming you have a way to calculate the average distance for this combination
@@ -970,7 +1023,6 @@ def evaluate_winning_bids(all_bids):
         total_price = sum(block["price"] for block in blocks)
         total_price_bid = sum(block['highest_bid']['amount'] for block in blocks)
         fairness_list = [total_price_bid,
-                         total_price_bid - discount,
                          total_price_bid * ((100 + additional_cost_percentage) / 100),
                          total_price_bid * ((100 + additional_cost_due_to_co2) / 100),
                          (total_price_bid - discount) * ((100 + additional_cost_percentage) / 100) * (
@@ -979,7 +1031,7 @@ def evaluate_winning_bids(all_bids):
         fairness_index = calculate_jains_fairness_index(fairness_list, total_price)
         print(f"fairness index: {fairness_index}")
 
-        norm_env_impact = invert_normalize(additional_cost_due_to_co2 + additional_cost_percentage, 15)
+        norm_env_impact = invert_normalize(additional_cost_due_to_co2 + additional_cost_percentage, 60)
         print(f"Normalize value: {norm_env_impact}")
 
         weight_waste_co2 = 0.5  # 50% importance
@@ -1044,13 +1096,13 @@ def retrieve_seller_info(seller_id):
 
 
 def start(skipPrompts):
-    bidders, sellers, evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block = readConfig(skipPrompts)
+    bidders, sellers, evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block, list_prints, list_prints_blocks = readConfig(skipPrompts)
     fairness = 1
     # TODO Serialize matchmaking results and store in appropriate way
     # matchmakingResults = matchMakingCalculation(sellerList, bidderList)
     # fairness = matchmakingResults[0].get('fairness', None)
     # distance = matchmakingResults[0].get('avgDistance', None)
-    export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block)
+    export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation, all_bids_by_block, bid_evaluation_by_block, list_prints, list_prints_blocks)
     fairness = 1
     #print(f"Best fairness value: {fairness}")
 

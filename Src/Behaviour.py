@@ -2,7 +2,7 @@ import math
 import random
 
 def randomBehaviour():
-    behaviourList = ["D", "E", "F"]
+    behaviourList = ["A", "B", "C"]
     return random.choice(behaviourList)
 
 def genBehaviour(input, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
@@ -26,16 +26,15 @@ def genBehaviour(input, aggressiveness, marketPriceFactor, stopBid, bidLikelihoo
 # Example behaviour class, any new types should follow the same variable-names and functions
 class typeA:
     def __init__(self, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
-        if aggressiveness == "none":
-            self.aggressiveness = random.uniform(0.8, 0.9)  # How "aggressive" bids are, effectively scales the bid size
-            self.marketPriceFactor = random.uniform(0.9, 1.5)  # How many % of marketprice (price per unit) to bid with
-            self.stopBid = random.uniform(1, 2)  # In which range of the expected price to stop bidding at
-            self.bidLikelihood = random.uniform(0.8, 1)
-        else:
-            self.aggressiveness = aggressiveness  # How "aggressive" bids are, effectively scales the bid size
-            self.marketPriceFactor = marketPriceFactor  # How many % of marketprice (price per unit) to bid with
-            self.stopBid = stopBid  # In which range of the expected price to stop bidding at
-            self.bidLikelihood = bidLikelihood
+        #self.aggressiveness = random.uniform(0.8, 0.9)  # How "aggressive" bids are, effectively scales the bid size
+        #self.marketPriceFactor = random.uniform(0.9, 1.5)  # How many % of marketprice (price per unit) to bid with
+        #self.stopBid = random.uniform(1, 2)  # In which range of the expected price to stop bidding at
+        #self.bidLikelihood = random.uniform(0.8, 1)
+        self.aggressiveness = 0.8
+        self.marketPriceFactor = 1.5  # How many % of marketprice (price per unit) to bid with
+        self.stopBid = 2  # In which range of the expected price to stop bidding at
+        self.bidLikelihood = 1.1 #0.9
+
 
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
@@ -66,10 +65,14 @@ class typeA:
 
 class typeB:
     def __init__(self, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
-        self.aggressiveness = random.uniform(0.5, 0.8)      # How "aggressive" bids are, effectively scales the bid size
-        self.marketPriceFactor = random.uniform(0.8, 1.3)     # How many % of marketprice (price per unit) to bid with
-        self.stopBid = random.uniform(1, 1.5)               # In which range of the expected price to stop bidding at
-        self.bidLikelihood = random.uniform(0.6, 0.9)
+        #self.aggressiveness = random.uniform(0.5, 0.8)      # How "aggressive" bids are, effectively scales the bid size
+        #self.marketPriceFactor = random.uniform(0.8, 1.3)  # How many % of marketprice (price per unit) to bid with
+        #self.stopBid = random.uniform(1, 1.5)  # In which range of the expected price to stop bidding at
+        #self.bidLikelihood = random.uniform(0.6, 0.9)
+        self.aggressiveness = 0.6
+        self.marketPriceFactor = 1.3     # How many % of marketprice (price per unit) to bid with
+        self.stopBid = 1.5             # In which range of the expected price to stop bidding at
+        self.bidLikelihood = 1.1 #0.7
 
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
@@ -100,10 +103,14 @@ class typeB:
 
 class typeC:
     def __init__(self, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
-        self.aggressiveness = random.uniform(0.3, 0.5)      # How "aggressive" bids are, effectively scales the bid size
-        self.marketPriceFactor = random.uniform(0.7, 1.1)     # How many % of marketprice (price per unit) to bid with
-        self.stopBid = random.uniform(1, 1.25)               # In which range of the expected price to stop bidding at
-        self.bidLikelihood = random.uniform(0.4, 0.7)
+        #self.aggressiveness = random.uniform(0.3, 0.5)      # How "aggressive" bids are, effectively scales the bid size
+        #self.marketPriceFactor = random.uniform(0.7, 1.1)  # How many % of marketprice (price per unit) to bid with
+        #self.stopBid = random.uniform(1, 1.25)  # In which range of the expected price to stop bidding at
+        #self.bidLikelihood = random.uniform(0.4, 0.7)
+        self.aggressiveness = 0.4
+        self.marketPriceFactor = 1.1     # How many % of marketprice (price per unit) to bid with
+        self.stopBid = 1.25              # In which range of the expected price to stop bidding at
+        self.bidLikelihood = 1.1 #0.5
 
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
@@ -135,9 +142,12 @@ class typeC:
 class typeD:
     def __init__(self, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
         self.aggressiveness = 0.5  # How "aggressive" bids are, effectively scales the bid size
-        self.marketPriceFactor = random.uniform(0.9, 1.5)  # How many % of marketprice (price per unit) to bid with
-        self.stopBid = random.uniform(1, 2)  # In which range of the expected price to stop bidding at
-        self.bidLikelihood = random.uniform(0.8, 1)
+        #self.marketPriceFactor = random.uniform(0.9, 1.5)  # How many % of marketprice (price per unit) to bid with
+        #self.stopBid = random.uniform(1, 2)  # In which range of the expected price to stop bidding at
+        #self.bidLikelihood = random.uniform(0.8, 1)
+        self.marketPriceFactor = 1.5  # How many % of marketprice (price per unit) to bid with
+        self.stopBid = 2  # In which range of the expected price to stop bidding at
+        self.bidLikelihood = 1.1#0.9
 
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
@@ -170,9 +180,12 @@ class typeD:
 class typeE:
     def __init__(self, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
         self.aggressiveness = 0.5      # How "aggressive" bids are, effectively scales the bid size
-        self.marketPriceFactor = random.uniform(0.8, 1.3)     # How many % of marketprice (price per unit) to bid with
-        self.stopBid = random.uniform(1, 1.5)               # In which range of the expected price to stop bidding at
-        self.bidLikelihood = random.uniform(0.6, 0.9)
+        #self.marketPriceFactor = random.uniform(0.8, 1.3)     # How many % of marketprice (price per unit) to bid with
+        #self.stopBid = random.uniform(1, 1.5)               # In which range of the expected price to stop bidding at
+        #self.bidLikelihood = random.uniform(0.6, 0.9)
+        self.marketPriceFactor = 1.3  # How many % of marketprice (price per unit) to bid with
+        self.stopBid = 1.5  # In which range of the expected price to stop bidding at
+        self.bidLikelihood = 1.1#0.7
 
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):
@@ -205,9 +218,12 @@ class typeE:
 class typeF:
     def __init__(self, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
         self.aggressiveness = 0.5      # How "aggressive" bids are, effectively scales the bid size
-        self.marketPriceFactor = random.uniform(0.7, 1.1)     # How many % of marketprice (price per unit) to bid with
-        self.stopBid = random.uniform(1, 1.25)               # In which range of the expected price to stop bidding at
-        self.bidLikelihood = random.uniform(0.4, 0.7)
+        #self.marketPriceFactor = random.uniform(0.7, 1.1)     # How many % of marketprice (price per unit) to bid with
+        #self.stopBid = random.uniform(1, 1.25)               # In which range of the expected price to stop bidding at
+        #self.bidLikelihood = random.uniform(0.4, 0.7)
+        self.marketPriceFactor = 1.1  # How many % of marketprice (price per unit) to bid with
+        self.stopBid = 1.25  # In which range of the expected price to stop bidding at
+        self.bidLikelihood = 1.1#0.5
 
     # Higher level function to run the adaptive updates
     def updateVariables(self, currentRound, maxRound, unfulfilledNeed):

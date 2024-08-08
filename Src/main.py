@@ -399,22 +399,26 @@ def evaluate_combinations(combinations, target_quantity, bidder, sellers):
         print(f"Additional cost due to CO2 emissions: {additional_cost_due_to_co2}%")
 
         total_price = sum(block["price"] for block in combination)
-        fairness_list = [total_price - discount,
-                         total_price * ((100 + additional_cost_percentage)/100),
-                         total_price * ((100 + additional_cost_due_to_co2)/100),
-                         (total_price - discount) * ((100 + additional_cost_percentage)/100) * ((100 + additional_cost_due_to_co2)/100)]
+        price_discount = total_price - discount
+        price_tax_waste = total_price * ((100 + additional_cost_percentage)/100)
+        price_tax_co2 = total_price * ((100 + additional_cost_due_to_co2)/100)
+        final_price = (total_price - discount) * ((100 + additional_cost_percentage)/100) * ((100 + additional_cost_due_to_co2)/100)
+
+        fairness_percentage = calculate_fairness_percentage(total_price, final_price)
+        fairness_list = [price_discount, price_tax_waste, price_tax_co2, final_price]
         #fairness_index = calculate_jains_fairness_index([block["quantity"] for block in combination], target_quantity)
         fairness_index = calculate_jains_fairness_index(fairness_list, total_price)
         print(f"fairness index: {fairness_index}")
 
 
         norm_env_impact = invert_normalize(additional_cost_due_to_co2 + additional_cost_percentage, 60)
+        norm_fairness = normalize(invert_normalize(fairness_percentage, 1) + fairness_index, 2)
         print(f"Normalize value: {norm_env_impact}")
 
         weight_waste_co2 = 0.5  # 50% importance
         weight_fairness = 0.5  # 50% importance
 
-        score = calculate_score(norm_env_impact, fairness_index, weight_waste_co2, weight_fairness)
+        score = calculate_score(norm_env_impact, norm_fairness, weight_waste_co2, weight_fairness)
         print(f"total score value: {score}")
 
         # Augment the combination data
@@ -434,12 +438,13 @@ def evaluate_combinations(combinations, target_quantity, bidder, sellers):
             'recommended_mode': emissions_info['recommended_mode'],
             'co2_additional_cost': additional_cost_due_to_co2,
             'total_price': total_price,
-            'total_price_discount': total_price - discount,
-            'total_price_waste': total_price * ((100 + additional_cost_percentage) / 100),
-            'total_price_co2': total_price * ((100 + additional_cost_due_to_co2) / 100),
-            'total_price_tax': (total_price - discount) * ((100 + additional_cost_percentage) / 100) * (
-                    (100 + additional_cost_due_to_co2) / 100),
+            'total_price_discount': price_discount,
+            'total_price_waste': price_tax_waste,
+            'total_price_co2': price_tax_co2,
+            'total_price_tax': final_price,
             'fairness_index': fairness_index,
+            'fairness_percentage': fairness_percentage,
+            'normalized_fairness': norm_fairness,
             'normalized_environmental_impact': norm_env_impact,
             'weight_waste_co2': weight_waste_co2,
             'weight_fairness': weight_fairness,
@@ -450,19 +455,6 @@ def evaluate_combinations(combinations, target_quantity, bidder, sellers):
 
         # Return the list of augmented combinations
     return augmented_combinations
-
-
-        # Update best_combination based on your criteria, e.g., minimize waste, then maximize fairness, and then minimize avg_distance
-
-        #if waste < least_waste or (waste == least_waste and (fairness_index > best_fairness or (
-          #      fairness_index == best_fairness and (avg_distance < best_avg_distance or total_cost_after_discount < best_cost_after_discount)))):
-         #   best_combination = combination
-        #    least_waste = waste
-       #     best_fairness = fairness_index
-      #      best_avg_distance = avg_distance
-     #       best_cost_after_discount = total_cost_after_discount
-
-    #return best_combination
 
 
 def calculate_score(normalized_waste_co2, normalized_fairness, weight_waste_co2, weight_fairness):
@@ -476,6 +468,13 @@ def invert_normalize(value, max_value):
     if max_value == 0:
         return 1  # Avoid division by zero; if max_value is 0, value should also be 0, resulting in the best score.
     return 1 - (value / max_value)
+
+
+def normalize(value, max_value):
+    """Invert normalize a value based on the maximum possible value."""
+    if max_value == 0:
+        return 0  # Avoid division by zero; if max_value is 0, value should also be 0, resulting in the best score.
+    return value / max_value
 
 
 def normalize(value, max_value):
@@ -511,33 +510,69 @@ def calculate_jains_fairness_index(quantities, target_quantity):
     if not quantities:
         return 0  # Avoid division by zero
 
-    scaled_quantities = [q - target_quantity for q in quantities]
-    sum_of_scaled = sum(scaled_quantities)
-    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
-    n = len(quantities)
-    fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
-    return fairness_index
-    #fairness_index_ind = []
-    #for q in quantities:
-    #    sum_scaled = q ** 2 + target_quantity ** 2
-    #    sum_scaled_div = 2 * ((q + target_quantity) ** 2)
-    #    fairness_index_ind.append(sum_scaled / sum_scaled_div)
-    #fairness_index = sum(fairness_index_ind) / len(fairness_index_ind)
-
     #scaled_quantities = [q / target_quantity for q in quantities]
-    #min_value = min(scaled_quantities)
-    #if min_value < 0:
-    #    scaled_quantities_min = [q + abs(min_value) for q in scaled_quantities]
-    #    sum_of_scaled = sum(scaled_quantities_min)
-    #    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities_min)
-    #else:
-    #    sum_of_scaled = sum(scaled_quantities)
-    #    sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
-
+    #sum_of_scaled = sum(scaled_quantities)
+    #sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
     #n = len(quantities)
     #fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
     #return fairness_index
 
+    #fairness_index_ind = []
+    #for q in quantities:
+    #    sum_scaled = (q + target_quantity) ** 2
+    #    sum_scaled_div = 2 * (q ** 2 + target_quantity ** 2)
+    #    fairness_index_ind.append(sum_scaled / sum_scaled_div)
+    #fairness_index = sum(fairness_index_ind) / len(fairness_index_ind)
+
+    scaled_quantities = [q - target_quantity for q in quantities]
+    min_value = min(scaled_quantities)
+    if min_value < 0:
+        scaled_quantities_min = [q + abs(min_value) for q in scaled_quantities]
+        sum_of_scaled = sum(scaled_quantities_min)
+        sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities_min)
+    else:
+        sum_of_scaled = sum(scaled_quantities)
+        sum_of_squares_scaled = sum(q ** 2 for q in scaled_quantities)
+    n = len(quantities)
+    fairness_index = (sum_of_scaled ** 2) / (n * sum_of_squares_scaled) if n * sum_of_squares_scaled else 0
+
+    return fairness_index
+
+
+def calculate_fairness_percentage(demanded_price, final_price):
+    """
+    Calculate Fairness Percentage
+
+    """
+    if final_price <= 0:
+        return 0  # Avoid division by zero
+
+
+    f_percentage = ((final_price * 100 ) / demanded_price) - 100
+
+    # Apply taxation based on waste percentage
+    if f_percentage < 5:
+        return 0  # No additional cost for waste below 5%
+    elif 5 <= f_percentage < 10:
+        return 0.1  # Moderate increase for waste between % and %
+    elif 10 <= f_percentage < 15:
+        return 0.2  # Higher increase for waste above %
+    elif 15 <= f_percentage < 20:
+        return 0.3  # Higher increase for waste above %
+    elif 20 <= f_percentage < 25:
+        return 0.4  # Higher increase for waste above %
+    elif 25 <= f_percentage < 30:
+        return 0.5  # Higher increase for waste above %
+    elif 30 <= f_percentage < 35:
+        return 0.6  # Higher increase for waste above %
+    elif 35 <= f_percentage < 40:
+        return 0.7  # Higher increase for waste above %
+    elif 40 <= f_percentage < 45:
+        return 0.8  # Higher increase for waste above %
+    elif 45 <= f_percentage < 50:
+        return 0.9  # Higher increase for waste above %
+    else:
+        return 1  # Higher increase for waste above %
 
 
 def calculate_discount_for_combination(combination, sellers):
@@ -1022,22 +1057,25 @@ def evaluate_winning_bids(all_bids):
 
         total_price = sum(block["price"] for block in blocks)
         total_price_bid = sum(block['highest_bid']['amount'] for block in blocks)
-        fairness_list = [total_price_bid,
-                         total_price_bid * ((100 + additional_cost_percentage) / 100),
-                         total_price_bid * ((100 + additional_cost_due_to_co2) / 100),
-                         (total_price_bid - discount) * ((100 + additional_cost_percentage) / 100) * (
-                                     (100 + additional_cost_due_to_co2) / 100)]
+        price_tax_waste = total_price_bid * ((100 + additional_cost_percentage) / 100)
+        price_tax_co2 = total_price_bid * ((100 + additional_cost_due_to_co2) / 100)
+        final_price = (total_price_bid - discount) * ((100 + additional_cost_percentage) / 100) * (
+                                     (100 + additional_cost_due_to_co2) / 100)
+
+        fairness_percentage = calculate_fairness_percentage(total_price, final_price)
+        fairness_list = [total_price_bid, price_tax_waste, price_tax_co2, final_price]
         # fairness_index = calculate_jains_fairness_index([block["quantity"] for block in combination], target_quantity)
         fairness_index = calculate_jains_fairness_index(fairness_list, total_price)
         print(f"fairness index: {fairness_index}")
 
         norm_env_impact = invert_normalize(additional_cost_due_to_co2 + additional_cost_percentage, 60)
+        norm_fairness = normalize(invert_normalize(fairness_percentage, 1) + fairness_index, 2)
         print(f"Normalize value: {norm_env_impact}")
 
         weight_waste_co2 = 0.5  # 50% importance
         weight_fairness = 0.5  # 50% importance
 
-        score = calculate_score(norm_env_impact, fairness_index, weight_waste_co2, weight_fairness)
+        score = calculate_score(norm_env_impact, norm_fairness, weight_waste_co2, weight_fairness)
         print(f"total score value: {score}")
 
         evaluation_data = {
@@ -1058,11 +1096,12 @@ def evaluate_winning_bids(all_bids):
             'total_price': total_price,
             'total_price_bid': total_price_bid,
             'total_price_bid_discount': total_price_bid - discount,
-            'total_price_bid_waste':  total_price_bid * ((100 + additional_cost_percentage) / 100),
-            'total_price_bid_co2': total_price_bid * ((100 + additional_cost_due_to_co2) / 100),
-            'total_price_bid_tax': (total_price_bid - discount) * ((100 + additional_cost_percentage) / 100) * (
-                                     (100 + additional_cost_due_to_co2) / 100),
+            'total_price_bid_waste':  price_tax_waste,
+            'total_price_bid_co2': price_tax_co2,
+            'total_price_bid_tax': final_price,
             'fairness_index': fairness_index,
+            'fairness_percentage': fairness_percentage,
+            'normalized_fairness': norm_fairness,
             'normalized_environmental_impact': norm_env_impact,
             'weight_waste_co2': weight_waste_co2,
             'weight_fairness': weight_fairness,

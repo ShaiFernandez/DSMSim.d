@@ -86,6 +86,8 @@ def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation
                 'Price Bid Co2': evaluation['total_price_co2'],
                 'Price Total': evaluation['total_price_tax'],
                 'Fairness Index': evaluation['fairness_index'],
+                'Fairness Percentage': evaluation['fairness_percentage'],
+                'Normalized Fairness': evaluation['normalized_fairness'],
                 'Weight Waste-Co2': evaluation['weight_waste_co2'],
                 'Weight Fairness': evaluation['weight_fairness'],
                 'Score': evaluation['score']
@@ -149,6 +151,8 @@ def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation
             'Price Bid Co2': evaluation_bid['total_price_bid_co2'],
             'Price Total': evaluation_bid['total_price_bid_tax'],
             'Fairness Index': evaluation_bid['fairness_index'],
+            'Fairness Percentage': evaluation_bid['fairness_percentage'],
+            'Normalized Fairness': evaluation_bid['normalized_fairness'],
             'Weight Waste-Co2': evaluation_bid['weight_waste_co2'],
             'Weight Fairness': evaluation_bid['weight_fairness'],
             'Score': evaluation_bid['score']
@@ -214,6 +218,8 @@ def export_data_to_excel(bidders, sellers, evaluations, all_bids, bid_evaluation
             'Price Bid Co2': evaluation_bid['total_price_bid_co2'],
             'Price Total': evaluation_bid['total_price_bid_tax'],
             'Fairness Index': evaluation_bid['fairness_index'],
+            'Fairness Percentage': evaluation_bid['fairness_percentage'],
+            'Normalized Fairness': evaluation_bid['normalized_fairness'],
             'Weight Waste-Co2': evaluation_bid['weight_waste_co2'],
             'Weight Fairness': evaluation_bid['weight_fairness'],
             'Score': evaluation_bid['score']

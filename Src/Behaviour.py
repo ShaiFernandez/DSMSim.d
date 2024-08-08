@@ -2,7 +2,7 @@ import math
 import random
 
 def randomBehaviour():
-    behaviourList = ["A", "B", "C"]
+    behaviourList = ["D", "E", "F"]
     return random.choice(behaviourList)
 
 def genBehaviour(input, aggressiveness, marketPriceFactor, stopBid, bidLikelihood):
